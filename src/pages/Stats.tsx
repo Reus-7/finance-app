@@ -12,7 +12,7 @@ import {
   Legend,
   Filler,
 } from 'chart.js';
-import { useStore, getCurrentMonth } from '../store';
+import { useStore } from '../store';
 
 ChartJS.register(
   CategoryScale,
@@ -30,7 +30,6 @@ export default function Stats() {
   const { transactions, categories } = useStore();
   const [period, setPeriod] = useState<'month' | 'week'>('month');
 
-  const currentMonth = getCurrentMonth();
   const today = new Date();
   const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
   const weekStart = new Date(today);
