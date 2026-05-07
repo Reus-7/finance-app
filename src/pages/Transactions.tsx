@@ -1,9 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../store';
 
 export default function Transactions() {
-  const { transactions, categories } = useStore();
+  const { transactions, categories, deleteTransaction } = useStore();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const groupedTransactions = useMemo(() => {
     const sorted = [...transactions].sort(
@@ -39,9 +40,56 @@ export default function Transactions() {
     return categories.find((c) => c.id === categoryId);
   };
 
+  const handleDelete = (id: string) => {
+    if (window.confirm('确定要删除这条账单吗？')) {
+      deleteTransaction(id);
+    }
+    setDeletingId(null);
+  };
+
+  const handleExportExcel = () => {
+    if (transactions.length === 0) {
+      alert('没有账单可以导出');
+      return;
+    }
+
+    const headers = ['日期', '类型', '分类', '金额', '商家', '地点', '备注'];
+    const rows = transactions.map((t) => {
+      const category = getCategory(t.categoryId);
+      return [
+        t.date,
+        t.type === 'income' ? '收入' : '支出',
+        category?.name || '未知分类',
+        t.amount.toFixed(2),
+        t.merchant || '-',
+        t.location || '-',
+        t.note || '-',
+      ];
+    });
+
+    const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `账单_${new Date().toLocaleDateString('zh-CN').replace(/\//g, '-')}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="p-4 max-w-lg mx-auto">
-      <h1 className="text-2xl font-bold text-gray-800 mb-4">账单</h1>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold text-gray-800">账单</h1>
+        {transactions.length > 0 && (
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center gap-1 px-4 py-2 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 transition-colors"
+          >
+            📊 导出Excel
+          </button>
+        )}
+      </div>
 
       {transactions.length === 0 ? (
         <div className="bg-white rounded-2xl p-8 shadow-md text-center">
@@ -65,9 +113,8 @@ export default function Transactions() {
                 {items.map((t, index) => {
                   const category = getCategory(t.categoryId);
                   return (
-                    <Link
+                    <div
                       key={t.id}
-                      to={`/edit/${t.id}`}
                       className={`flex items-center p-4 hover:bg-pink-50 transition-colors ${
                         index !== items.length - 1 ? 'border-b border-gray-100' : ''
                       }`}
@@ -86,17 +133,31 @@ export default function Transactions() {
                           {t.merchant || t.note || '无备注'}
                         </p>
                       </div>
-                      <div className="text-right">
-                        <p
-                          className={`font-semibold ${
-                            t.type === 'income' ? 'text-green-500' : 'text-gray-800'
-                          }`}
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <p
+                            className={`font-semibold ${
+                              t.type === 'income' ? 'text-green-500' : 'text-gray-800'
+                            }`}
+                          >
+                            {t.type === 'income' ? '+' : '-'}{t.amount.toFixed(2)}
+                          </p>
+                          {t.photo && <span className="text-xs text-gray-400">📷</span>}
+                        </div>
+                        <Link
+                          to={`/edit/${t.id}`}
+                          className="text-gray-400 hover:text-pink-500 transition-colors"
                         >
-                          {t.type === 'income' ? '+' : '-'}{t.amount.toFixed(2)}
-                        </p>
-                        {t.photo && <span className="text-xs text-gray-400">📷</span>}
+                          ✏️
+                        </Link>
+                        <button
+                          onClick={() => handleDelete(t.id)}
+                          className="text-gray-400 hover:text-red-500 transition-colors"
+                        >
+                          🗑️
+                        </button>
                       </div>
-                    </Link>
+                    </div>
                   );
                 })}
               </div>
