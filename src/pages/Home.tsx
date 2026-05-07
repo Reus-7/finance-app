@@ -105,6 +105,20 @@ export default function Home() {
 
   return (
     <div className="p-4 max-w-lg mx-auto">
+      <div className="flex items-center justify-center mb-4">
+        <div className="flex items-center bg-gradient-to-r from-pink-100 to-pink-200 rounded-2xl px-6 py-3 shadow-md">
+          <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mr-3 shadow-sm">
+            <span className="text-3xl">👧</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-2xl font-bold bg-gradient-to-r from-pink-500 to-pink-600 bg-clip-text text-transparent">
+              娜娜记账
+            </span>
+            <span className="text-xs text-pink-500">记录每一笔小确幸</span>
+          </div>
+        </div>
+      </div>
+
       <div className="bg-gradient-to-r from-pink-400 to-pink-500 rounded-2xl p-5 text-white mb-4 shadow-lg">
         <p className="text-pink-100 text-sm mb-1">{new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' })}</p>
         <p className="text-3xl font-bold mb-4">¥{monthlyData.balance.toFixed(2)}</p>
