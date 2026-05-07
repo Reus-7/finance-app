@@ -1,29 +1,25 @@
 import { useMemo, useState } from 'react';
-import { Pie, Line } from 'react-chartjs-2';
+import { Pie, Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
-  PointElement,
-  LineElement,
+  BarElement,
   ArcElement,
   Title,
   Tooltip,
   Legend,
-  Filler,
 } from 'chart.js';
 import { useStore } from '../store';
 
 ChartJS.register(
   CategoryScale,
   LinearScale,
-  PointElement,
-  LineElement,
+  BarElement,
   ArcElement,
   Title,
   Tooltip,
-  Legend,
-  Filler
+  Legend
 );
 
 export default function Stats() {
@@ -151,7 +147,7 @@ export default function Stats() {
     };
   }, [transactions, categories]);
 
-  const lineChartData = useMemo(() => {
+  const barChartData = useMemo(() => {
     const labels = period === 'month'
       ? periodData.days.map((d) => {
           const date = new Date(d);
@@ -168,10 +164,8 @@ export default function Stats() {
         {
           label: '支出',
           data: periodData.days.map((d) => periodData.dailyData[d] || 0),
-          borderColor: '#ec4899',
-          backgroundColor: 'rgba(236, 72, 153, 0.1)',
-          fill: true,
-          tension: 0.4,
+          backgroundColor: 'rgba(236, 72, 153, 0.8)',
+          borderRadius: 8,
         },
       ],
     };
@@ -244,8 +238,8 @@ export default function Stats() {
       <div className="bg-white rounded-2xl p-4 mb-4 shadow-md">
         <h3 className="text-gray-700 font-semibold mb-3">每日支出趋势</h3>
         <div className="h-48">
-          <Line
-            data={lineChartData}
+          <Bar
+            data={barChartData}
             options={{
               maintainAspectRatio: false,
               plugins: { legend: { display: false } },

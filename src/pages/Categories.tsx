@@ -192,13 +192,13 @@ export default function Categories() {
 
             <div className="mb-4">
               <label className="block text-gray-600 text-sm mb-2">选择图标</label>
-              <div className="grid grid-cols-10 gap-2">
+              <div className="grid grid-cols-5 gap-2">
                 {emojiList.map((emoji) => (
                   <button
                     key={emoji}
                     type="button"
                     onClick={() => setIcon(emoji)}
-                    className={`p-2 text-2xl rounded-lg transition-all ${
+                    className={`w-full aspect-square flex items-center justify-center text-xl rounded-lg transition-all ${
                       icon === emoji
                         ? 'bg-pink-100 ring-2 ring-pink-500'
                         : 'bg-gray-50 hover:bg-gray-100'

@@ -1,10 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../store';
 
 export default function Transactions() {
   const { transactions, categories, deleteTransaction } = useStore();
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [swipedId, setSwipedId] = useState<string | null>(null);
+  const touchStartX = useRef<number>(0);
+  const touchEndX = useRef<number>(0);
 
   const groupedTransactions = useMemo(() => {
     const sorted = [...transactions].sort(
@@ -40,14 +42,14 @@ export default function Transactions() {
     return categories.find((c) => c.id === categoryId);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = useCallback((id: string) => {
     if (window.confirm('确定要删除这条账单吗？')) {
       deleteTransaction(id);
     }
-    setDeletingId(null);
-  };
+    setSwipedId(null);
+  }, [deleteTransaction]);
 
-  const handleExportExcel = () => {
+  const handleExportExcel = useCallback(() => {
     if (transactions.length === 0) {
       alert('没有账单可以导出');
       return;
@@ -75,6 +77,21 @@ export default function Transactions() {
     link.download = `账单_${new Date().toLocaleDateString('zh-CN').replace(/\//g, '-')}.csv`;
     link.click();
     URL.revokeObjectURL(url);
+  }, [transactions, getCategory]);
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const onTouchEnd = (e: React.TouchEvent, id: string) => {
+    touchEndX.current = e.changedTouches[0].clientX;
+    const diff = touchStartX.current - touchEndX.current;
+    
+    if (diff > 50) {
+      setSwipedId(id);
+    } else if (diff < -50) {
+      setSwipedId(null);
+    }
   };
 
   return (
@@ -86,7 +103,7 @@ export default function Transactions() {
             onClick={handleExportExcel}
             className="flex items-center gap-1 px-4 py-2 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 transition-colors"
           >
-            📊 导出Excel
+            📊 导出账单
           </button>
         )}
       </div>
@@ -112,50 +129,64 @@ export default function Transactions() {
               <div className="bg-white rounded-2xl shadow-md overflow-hidden">
                 {items.map((t, index) => {
                   const category = getCategory(t.categoryId);
+                  const isSwiped = swipedId === t.id;
+                  
                   return (
                     <div
                       key={t.id}
-                      className={`flex items-center p-4 hover:bg-pink-50 transition-colors ${
+                      className={`relative overflow-hidden ${
                         index !== items.length - 1 ? 'border-b border-gray-100' : ''
                       }`}
                     >
-                      <div
-                        className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl mr-3"
-                        style={{ backgroundColor: category?.color + '20' }}
-                      >
-                        {category?.icon || '📦'}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-gray-800 font-medium truncate">
-                          {category?.name || '未知分类'}
-                        </p>
-                        <p className="text-gray-400 text-sm truncate">
-                          {t.merchant || t.note || '无备注'}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="text-right">
-                          <p
-                            className={`font-semibold ${
-                              t.type === 'income' ? 'text-green-500' : 'text-gray-800'
-                            }`}
-                          >
-                            {t.type === 'income' ? '+' : '-'}{t.amount.toFixed(2)}
-                          </p>
-                          {t.photo && <span className="text-xs text-gray-400">📷</span>}
-                        </div>
-                        <Link
-                          to={`/edit/${t.id}`}
-                          className="text-gray-400 hover:text-pink-500 transition-colors"
-                        >
-                          ✏️
-                        </Link>
+                      <div className="absolute right-0 top-0 bottom-0 w-24 bg-red-500 flex items-center justify-center">
                         <button
                           onClick={() => handleDelete(t.id)}
-                          className="text-gray-400 hover:text-red-500 transition-colors"
+                          className="text-white font-semibold flex items-center gap-1"
                         >
-                          🗑️
+                          🗑️ 删除
                         </button>
+                      </div>
+                      <div
+                        className="relative bg-white transition-transform duration-200"
+                        style={{ transform: isSwiped ? 'translateX(-96px)' : 'translateX(0)' }}
+                        onTouchStart={(e) => onTouchStart(e)}
+                        onTouchEnd={(e) => onTouchEnd(e, t.id)}
+                        onClick={() => setSwipedId(null)}
+                      >
+                        <div className="flex items-center p-4">
+                          <div
+                            className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl mr-3"
+                            style={{ backgroundColor: category?.color + '20' }}
+                          >
+                            {category?.icon || '📦'}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-gray-800 font-medium truncate">
+                              {category?.name || '未知分类'}
+                            </p>
+                            <p className="text-gray-400 text-sm truncate">
+                              {t.merchant || t.note || '无备注'}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <p
+                                className={`font-semibold ${
+                                  t.type === 'income' ? 'text-green-500' : 'text-gray-800'
+                                }`}
+                              >
+                                {t.type === 'income' ? '+' : '-'}{t.amount.toFixed(2)}
+                              </p>
+                              {t.photo && <span className="text-xs text-gray-400">📷</span>}
+                            </div>
+                            <Link
+                              to={`/edit/${t.id}`}
+                              className="text-gray-400 hover:text-pink-500 transition-colors"
+                            >
+                              ✏️
+                            </Link>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   );
